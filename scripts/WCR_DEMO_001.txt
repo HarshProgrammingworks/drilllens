@@ -1,0 +1,24 @@
+WELL CONTROL REPORT WCR_DEMO_001
+Source type: DEMO
+Well: North Rift 2
+Well ID: WL-002
+Field: North Rift
+Operator: Rift Energy
+Report type: WCR
+Date: 2024-03-12
+
+This demonstration report is stored so the extraction pipeline can be tested.
+It is not a record from an operating rig.
+
+At 2450 m, torque increased significantly while drilling Wolfcamp Formation and a stuck-pipe indicator was recorded, WOB was reduced and torque stabilized.
+
+At 2380 m, standpipe pressure increased rapidly and a kick was suspected in the Wolfcamp Formation, the well was shut in and pressure stabilized.
+
+At 2510 m, mud flow decreased and pump pressure dropped in the Bone Spring Formation and lost circulation was observed, LCM was pumped and circulation was partially restored.
+
+At 2600 m, gas-cut mud was reported in the Bone Spring Formation and mud weight was 1.22 sg.
+
+At 2320 m, a cementing problem was recorded after the casing cement job in the Spraberry Formation, and the cement job completed.
+
+Equipment noted: PDC bit, BHA, jars, and casing.
+Drilling parameter: WOB was 14 klbf. RPM was 110. ROP was 16.

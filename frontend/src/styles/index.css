@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { margin: 0; background: #0c1118; color: #e7edf5; }
+:focus-visible { outline: 2px solid #3d8bfd; outline-offset: 2px; }
+.leaflet-container { height: 100%; width: 100%; background: #0c1118; font-family: Inter, sans-serif; }
+
+@layer components {
+  .panel { @apply bg-panel border border-line rounded-lg; }
+  .field { @apply w-full bg-ink border border-line rounded px-3 py-2 text-sm text-white placeholder:text-slate-500; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-medium border border-line bg-panel hover:bg-slate-800 disabled:opacity-50; }
+  .btn-primary { @apply bg-slate-100 text-ink border-slate-100 hover:bg-white; }
+  .tech { @apply font-mono tabular-nums; }
+}

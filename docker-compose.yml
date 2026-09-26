@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: drilllens
+      POSTGRES_PASSWORD: drilllens
+      POSTGRES_DB: drilllens
+    volumes:
+      - drilllens_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drilllens -d drilllens"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://drilllens:drilllens@postgres:5432/drilllens
+      SECRET_KEY: dev-only-change-before-production
+      JWT_SECRET_KEY: dev-only-jwt-change-before-production
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      UPLOAD_DIRECTORY: /app/uploads
+      MAX_UPLOAD_SIZE_MB: 25
+      TESSERACT_PATH: /usr/bin/tesseract
+      OCR_LANGUAGE: eng
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      WEBSOCKET_INTERVAL_SECONDS: 2
+      OSM_TILE_URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+      ENVIRONMENT: development
+      RETURN_RESET_TOKEN: "true"
+      SENSOR_ADAPTER: simulated
+      RISK_ENGINE: rule_based
+      ENABLE_SPACY: "true"
+      ENABLE_TRANSFORMERS: "false"
+    volumes:
+      - drilllens_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+    ports:
+      - "8001:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+volumes:
+  drilllens_pg:
+  drilllens_uploads:
