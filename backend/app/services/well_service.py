@@ -10,29 +10,32 @@ def sync_geography(db: Session, table: str, well_id) -> None:
     """Fill PostGIS geography when the extension and column exist. Latitude and longitude remain the source values."""
     if table not in {"well_coordinates", "well_trajectories"}:
         return
-    present = db.execute(
-        text(
-            """
-            SELECT EXISTS (
-                SELECT 1 FROM information_schema.columns
-                WHERE table_name = :table AND column_name = 'location'
-            )
-            """
-        ),
-        {"table": table},
-    ).scalar()
-    if not present:
-        return
-    db.execute(
-        text(
-            f"""
-            UPDATE {table}
-            SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
-            WHERE well_id = :well_id
-            """
-        ),
-        {"well_id": well_id},
-    )
+    try:
+        present = db.execute(
+            text(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = :table AND column_name = 'location'
+                )
+                """
+            ),
+            {"table": table},
+        ).scalar()
+        if not present:
+            return
+        db.execute(
+            text(
+                f"""
+                UPDATE {table}
+                SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+                WHERE well_id = :well_id
+                """
+            ),
+            {"well_id": well_id},
+        )
+    except Exception:
+        pass
 
 
 def get_well(db: Session, ident: str) -> Well | None:

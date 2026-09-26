@@ -203,50 +203,53 @@ def process_report(db: Session, report_id: UUID) -> HistoricalReport:
 def _index(db: Session, report: HistoricalReport) -> None:
     from sqlalchemy import text
 
-    db.execute(
-        text(
-            """
-            UPDATE historical_reports
-            SET search_vector = to_tsvector('english', coalesce(title,'') || ' ' || coalesce(report_type,''))
-            WHERE id = :id
-            """
-        ),
-        {"id": report.id},
-    )
-    db.execute(
-        text(
-            """
-            UPDATE report_pages
-            SET search_vector = to_tsvector('english', coalesce(text_content, ''))
-            WHERE report_id = :id
-            """
-        ),
-        {"id": report.id},
-    )
-    db.execute(
-        text(
-            """
-            UPDATE drilling_events
-            SET search_vector = to_tsvector('english',
-                coalesce(description,'') || ' ' || coalesce(event_type,'') || ' ' ||
-                coalesce(risk_category,'') || ' ' || coalesce(formation_name,'') || ' ' ||
-                coalesce(action_taken,'') || ' ' || coalesce(outcome,''))
-            WHERE report_id = :id
-            """
-        ),
-        {"id": report.id},
-    )
-    db.execute(
-        text(
-            """
-            UPDATE evidence
-            SET search_vector = to_tsvector('english', coalesce(text_excerpt,'') || ' ' || coalesce(formation,''))
-            WHERE report_id = :id
-            """
-        ),
-        {"id": report.id},
-    )
-    db.commit()
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE historical_reports
+                SET search_vector = to_tsvector('english', coalesce(title,'') || ' ' || coalesce(report_type,''))
+                WHERE id = :id
+                """
+            ),
+            {"id": report.id},
+        )
+        db.execute(
+            text(
+                """
+                UPDATE report_pages
+                SET search_vector = to_tsvector('english', coalesce(text_content, ''))
+                WHERE report_id = :id
+                """
+            ),
+            {"id": report.id},
+        )
+        db.execute(
+            text(
+                """
+                UPDATE drilling_events
+                SET search_vector = to_tsvector('english',
+                    coalesce(description,'') || ' ' || coalesce(event_type,'') || ' ' ||
+                    coalesce(risk_category,'') || ' ' || coalesce(formation_name,'') || ' ' ||
+                    coalesce(action_taken,'') || ' ' || coalesce(outcome,''))
+                WHERE report_id = :id
+                """
+            ),
+            {"id": report.id},
+        )
+        db.execute(
+            text(
+                """
+                UPDATE evidence
+                SET search_vector = to_tsvector('english', coalesce(text_excerpt,'') || ' ' || coalesce(formation,''))
+                WHERE report_id = :id
+                """
+            ),
+            {"id": report.id},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 def report_progress(report: HistoricalReport) -> dict:

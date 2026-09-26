@@ -9,14 +9,20 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
+    Uuid,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+JSON_TYPE = JSON().with_variant(JSONB, "postgresql")
+TSVECTOR_TYPE = Text().with_variant(TSVECTOR, "postgresql")
+UUID_TYPE = Uuid(as_uuid=True).with_variant(PG_UUID(as_uuid=True), "postgresql")
 
 
 def utcnow() -> datetime:
@@ -26,7 +32,7 @@ def utcnow() -> datetime:
 class Role(Base):
     __tablename__ = "roles"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
 
@@ -34,7 +40,7 @@ class Role(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     username: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -51,7 +57,7 @@ class User(Base):
 class RevokedToken(Base):
     __tablename__ = "revoked_tokens"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     jti: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -61,7 +67,7 @@ class RevokedToken(Base):
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     token_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -72,7 +78,7 @@ class PasswordResetToken(Base):
 class Formation(Base):
     __tablename__ = "formations"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -81,7 +87,7 @@ class Formation(Base):
 class Well(Base):
     __tablename__ = "wells"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     well_name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     field: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
@@ -109,7 +115,7 @@ class Well(Base):
 class WellCoordinate(Base):
     __tablename__ = "well_coordinates"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), unique=True)
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
@@ -120,7 +126,7 @@ class WellCoordinate(Base):
 class WellTrajectory(Base):
     __tablename__ = "well_trajectories"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), index=True)
     station_index: Mapped[int] = mapped_column(Integer, nullable=False)
     measured_depth: Mapped[float] = mapped_column(Float, nullable=False)
@@ -138,7 +144,7 @@ class WellTrajectory(Base):
 class WellFormation(Base):
     __tablename__ = "well_formations"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), index=True)
     formation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("formations.id"), index=True)
     depth_top: Mapped[float] = mapped_column(Float, nullable=False)
@@ -150,7 +156,7 @@ class WellFormation(Base):
 class DrillingParameter(Base):
     __tablename__ = "drilling_parameters"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     depth: Mapped[float | None] = mapped_column(Float)
@@ -170,7 +176,7 @@ class DrillingParameter(Base):
 class HistoricalReport(Base):
     __tablename__ = "historical_reports"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("wells.id"), index=True)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     report_type: Mapped[str] = mapped_column(String(40), nullable=False, default="WCR")
@@ -183,7 +189,7 @@ class HistoricalReport(Base):
     report_date: Mapped[datetime | None] = mapped_column(Date)
     source_type: Mapped[str] = mapped_column(String(40), default="ENGINEER_ENTERED")
     error_message: Mapped[str | None] = mapped_column(Text)
-    search_vector = mapped_column(TSVECTOR)
+    search_vector = mapped_column(TSVECTOR_TYPE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -194,13 +200,13 @@ class HistoricalReport(Base):
 class ReportPage(Base):
     __tablename__ = "report_pages"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("historical_reports.id", ondelete="CASCADE"), index=True)
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     text_content: Mapped[str] = mapped_column(Text, default="")
     is_scanned: Mapped[bool] = mapped_column(Boolean, default=False)
     char_count: Mapped[int] = mapped_column(Integer, default=0)
-    search_vector = mapped_column(TSVECTOR)
+    search_vector = mapped_column(TSVECTOR_TYPE)
 
     report: Mapped[HistoricalReport] = relationship(back_populates="pages")
 
@@ -210,7 +216,7 @@ class ReportPage(Base):
 class OcrResult(Base):
     __tablename__ = "ocr_results"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("historical_reports.id", ondelete="CASCADE"), index=True)
     page_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("report_pages.id", ondelete="SET NULL"))
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -224,7 +230,7 @@ class OcrResult(Base):
 class NlpEntity(Base):
     __tablename__ = "nlp_entities"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("historical_reports.id", ondelete="CASCADE"), index=True)
     page_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("report_pages.id", ondelete="SET NULL"))
     entity_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
@@ -240,7 +246,7 @@ class NlpEntity(Base):
 class DrillingEvent(Base):
     __tablename__ = "drilling_events"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("wells.id"), index=True)
     report_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("historical_reports.id"))
     page_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("report_pages.id"))
@@ -256,7 +262,7 @@ class DrillingEvent(Base):
     event_date: Mapped[datetime | None] = mapped_column(Date)
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
     source_type: Mapped[str] = mapped_column(String(40), default="NLP_EXTRACTED")
-    search_vector = mapped_column(TSVECTOR)
+    search_vector = mapped_column(TSVECTOR_TYPE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     well: Mapped[Well | None] = relationship()
@@ -266,7 +272,7 @@ class DrillingEvent(Base):
 class RiskThreshold(Base):
     __tablename__ = "risk_thresholds"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     category: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
     low_max: Mapped[float] = mapped_column(Float, default=29)
     moderate_max: Mapped[float] = mapped_column(Float, default=59)
@@ -283,16 +289,16 @@ class RiskThreshold(Base):
 class RiskPrediction(Base):
     __tablename__ = "risk_predictions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id"), index=True)
     category: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     score: Mapped[float] = mapped_column(Float, nullable=False)
     level: Mapped[str] = mapped_column(String(20), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
-    reasons: Mapped[list] = mapped_column(JSONB, default=list)
-    evidence_ids: Mapped[list] = mapped_column(JSONB, default=list)
-    inputs: Mapped[dict] = mapped_column(JSONB, default=dict)
-    features: Mapped[dict] = mapped_column(JSONB, default=dict)
+    reasons: Mapped[list] = mapped_column(JSON_TYPE, default=list)
+    evidence_ids: Mapped[list] = mapped_column(JSON_TYPE, default=list)
+    inputs: Mapped[dict] = mapped_column(JSON_TYPE, default=dict)
+    features: Mapped[dict] = mapped_column(JSON_TYPE, default=dict)
     engine: Mapped[str] = mapped_column(String(40), default="rule_based")
     engine_version: Mapped[str] = mapped_column(String(20), default="1.0.0")
     model_version: Mapped[str | None] = mapped_column(String(40))
@@ -304,7 +310,7 @@ class RiskPrediction(Base):
 class RiskEvent(Base):
     __tablename__ = "risk_events"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id"), index=True)
     prediction_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("risk_predictions.id"))
     category: Mapped[str] = mapped_column(String(40), nullable=False)
@@ -316,7 +322,7 @@ class RiskEvent(Base):
 class Alert(Base):
     __tablename__ = "alerts"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id"), index=True)
     risk_category: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -340,7 +346,7 @@ class Alert(Base):
 class WellSimilarity(Base):
     __tablename__ = "well_similarity"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), index=True)
     other_well_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("wells.id", ondelete="CASCADE"), index=True)
     overall_score: Mapped[float] = mapped_column(Float, nullable=False)
@@ -350,7 +356,7 @@ class WellSimilarity(Base):
     trajectory_score: Mapped[float] = mapped_column(Float, nullable=False)
     event_score: Mapped[float] = mapped_column(Float, nullable=False)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
-    weights: Mapped[dict] = mapped_column(JSONB, default=dict)
+    weights: Mapped[dict] = mapped_column(JSON_TYPE, default=dict)
     distance_m: Mapped[float | None] = mapped_column(Float)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -360,7 +366,7 @@ class WellSimilarity(Base):
 class Evidence(Base):
     __tablename__ = "evidence"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     source_type: Mapped[str] = mapped_column(String(40), nullable=False)
     report_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("historical_reports.id"))
     page_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("report_pages.id"))
@@ -372,7 +378,7 @@ class Evidence(Base):
     text_excerpt: Mapped[str] = mapped_column(Text, nullable=False)
     source_location: Mapped[str | None] = mapped_column(String(300))
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
-    search_vector = mapped_column(TSVECTOR)
+    search_vector = mapped_column(TSVECTOR_TYPE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     report: Mapped[HistoricalReport | None] = relationship()
@@ -383,14 +389,14 @@ class Evidence(Base):
 class EngineeringReview(Base):
     __tablename__ = "engineering_reviews"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     well_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("wells.id"))
     alert_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("alerts.id"))
     engineer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     decision: Mapped[str] = mapped_column(String(40), nullable=False)
     comment: Mapped[str | None] = mapped_column(Text)
     risk_category: Mapped[str | None] = mapped_column(String(40))
-    snapshot: Mapped[dict] = mapped_column(JSONB, default=dict)
+    snapshot: Mapped[dict] = mapped_column(JSON_TYPE, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     engineer: Mapped[User] = relationship()
@@ -401,13 +407,13 @@ class EngineeringReview(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     resource: Mapped[str] = mapped_column(String(80), nullable=False)
     resource_id: Mapped[str | None] = mapped_column(String(80))
     ip_address: Mapped[str | None] = mapped_column(String(64))
-    metadata_json: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
+    metadata_json: Mapped[dict] = mapped_column("metadata", JSON_TYPE, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
     user: Mapped[User | None] = relationship()
@@ -416,7 +422,7 @@ class AuditLog(Base):
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID_TYPE, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
     type: Mapped[str] = mapped_column(String(40), nullable=False)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
@@ -430,11 +436,10 @@ class SystemConfig(Base):
     __tablename__ = "system_config"
 
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
-    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    value: Mapped[dict] = mapped_column(JSON_TYPE, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
 
 Index("ix_parameters_well_time", DrillingParameter.well_id, DrillingParameter.recorded_at)
 Index("ix_events_well_depth", DrillingEvent.well_id, DrillingEvent.depth_start)
-    

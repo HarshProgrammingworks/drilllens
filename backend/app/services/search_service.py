@@ -1,112 +1,128 @@
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.models import DrillingEvent, Evidence, Formation, HistoricalReport, Well
 
 
 def search_all(db: Session, query: str, limit: int = 20) -> dict:
-    """PostgreSQL full-text search with ILIKE fallback for short engineering phrases."""
+    """Universal cross-database search for wells, reports, events, evidence, and formations."""
     q = query.strip()
     if not q:
         return {"wells": [], "reports": [], "events": [], "evidence": [], "formations": []}
 
-    wells = db.execute(
-        text(
-            """
-            SELECT id::text, well_code, well_name, field, current_formation, status
-            FROM wells
-            WHERE is_archived = false
-              AND (
-                well_name ILIKE :like OR well_code ILIKE :like OR field ILIKE :like
-                OR current_formation ILIKE :like
-              )
-            ORDER BY well_name
-            LIMIT :limit
-            """
-        ),
-        {"like": f"%{q}%", "limit": limit},
-    ).mappings().all()
+    like = f"%{q}%"
 
-    reports = db.execute(
-        text(
-            """
-            SELECT r.id::text, r.title, r.report_type, r.status, w.well_code, w.well_name,
-                   ts_headline('english', coalesce(p.text_content, ''), plainto_tsquery('english', :q)) AS excerpt
-            FROM historical_reports r
-            LEFT JOIN wells w ON w.id = r.well_id
-            LEFT JOIN LATERAL (
-                SELECT text_content FROM report_pages
-                WHERE report_id = r.id
-                ORDER BY page_number LIMIT 1
-            ) p ON true
-            WHERE r.search_vector @@ plainto_tsquery('english', :q)
-               OR r.title ILIKE :like
-               OR coalesce(p.text_content, '') ILIKE :like
-            LIMIT :limit
-            """
-        ),
-        {"q": q, "like": f"%{q}%", "limit": limit},
-    ).mappings().all()
+    wells_q = (
+        db.query(Well)
+        .filter(
+            Well.is_archived.is_(False),
+            (Well.well_name.ilike(like))
+            | (Well.well_code.ilike(like))
+            | (Well.field.ilike(like))
+            | (Well.current_formation.ilike(like)),
+        )
+        .order_by(Well.well_name)
+        .limit(limit)
+        .all()
+    )
 
-    events = db.execute(
-        text(
-            """
-            SELECT e.id::text, e.event_type, e.risk_category, e.description, e.depth_start,
-                   e.formation_name, e.event_date::text AS event_date, e.report_id::text,
-                   w.well_code, w.well_name, w.id::text AS well_id,
-                   rp.page_number
-            FROM drilling_events e
-            LEFT JOIN wells w ON w.id = e.well_id
-            LEFT JOIN report_pages rp ON rp.id = e.page_id
-            WHERE e.search_vector @@ plainto_tsquery('english', :q)
-               OR e.description ILIKE :like
-               OR e.event_type ILIKE :like
-               OR coalesce(e.risk_category, '') ILIKE :like
-               OR coalesce(e.formation_name, '') ILIKE :like
-               OR coalesce(w.well_name, '') ILIKE :like
-               OR coalesce(w.field, '') ILIKE :like
-            ORDER BY e.created_at DESC
-            LIMIT :limit
-            """
-        ),
-        {"q": q, "like": f"%{q}%", "limit": limit},
-    ).mappings().all()
+    reports_q = (
+        db.query(HistoricalReport)
+        .filter(
+            (HistoricalReport.title.ilike(like))
+            | (HistoricalReport.report_type.ilike(like))
+            | (HistoricalReport.original_filename.ilike(like))
+        )
+        .limit(limit)
+        .all()
+    )
 
-    evidence = db.execute(
-        text(
-            """
-            SELECT ev.id::text, ev.text_excerpt, ev.formation, ev.depth_start, ev.confidence,
-                   ev.source_type, w.well_code, w.well_name, r.title AS report_title, rp.page_number
-            FROM evidence ev
-            LEFT JOIN wells w ON w.id = ev.well_id
-            LEFT JOIN historical_reports r ON r.id = ev.report_id
-            LEFT JOIN report_pages rp ON rp.id = ev.page_id
-            WHERE ev.search_vector @@ plainto_tsquery('english', :q)
-               OR ev.text_excerpt ILIKE :like
-               OR coalesce(ev.formation, '') ILIKE :like
-            LIMIT :limit
-            """
-        ),
-        {"q": q, "like": f"%{q}%", "limit": limit},
-    ).mappings().all()
+    events_q = (
+        db.query(DrillingEvent)
+        .filter(
+            (DrillingEvent.description.ilike(like))
+            | (DrillingEvent.event_type.ilike(like))
+            | (DrillingEvent.formation_name.ilike(like))
+            | (DrillingEvent.risk_category.ilike(like))
+        )
+        .order_by(DrillingEvent.created_at.desc())
+        .limit(limit)
+        .all()
+    )
 
-    formations = db.execute(
-        text(
-            """
-            SELECT id::text, name, description
-            FROM formations
-            WHERE name ILIKE :like OR coalesce(description, '') ILIKE :like
-            LIMIT :limit
-            """
-        ),
-        {"like": f"%{q}%", "limit": limit},
-    ).mappings().all()
+    evidence_q = (
+        db.query(Evidence)
+        .filter((Evidence.text_excerpt.ilike(like)) | (Evidence.formation.ilike(like)))
+        .limit(limit)
+        .all()
+    )
+
+    formations_q = (
+        db.query(Formation)
+        .filter((Formation.name.ilike(like)) | (Formation.description.ilike(like)))
+        .limit(limit)
+        .all()
+    )
 
     return {
         "query": q,
-        "wells": [dict(r) for r in wells],
-        "reports": [dict(r) for r in reports],
-        "events": [dict(r) for r in events],
-        "evidence": [dict(r) for r in evidence],
-        "formations": [dict(r) for r in formations],
-        "engine": "postgresql_full_text",
+        "wells": [
+            {
+                "id": str(w.id),
+                "well_code": w.well_code,
+                "well_name": w.well_name,
+                "field": w.field,
+                "current_formation": w.current_formation,
+                "status": w.status,
+            }
+            for w in wells_q
+        ],
+        "reports": [
+            {
+                "id": str(r.id),
+                "title": r.title,
+                "report_type": r.report_type,
+                "status": r.status,
+                "well_code": r.well.well_code if r.well else "",
+                "well_name": r.well.well_name if r.well else "",
+                "excerpt": r.title,
+            }
+            for r in reports_q
+        ],
+        "events": [
+            {
+                "id": str(e.id),
+                "event_type": e.event_type,
+                "risk_category": e.risk_category,
+                "description": e.description,
+                "depth_start": e.depth_start,
+                "formation_name": e.formation_name,
+                "event_date": str(e.event_date) if e.event_date else "",
+                "report_id": str(e.report_id) if e.report_id else "",
+                "well_code": e.well.well_code if e.well else "",
+                "well_name": e.well.well_name if e.well else "",
+                "well_id": str(e.well_id) if e.well_id else "",
+                "page_number": 1,
+            }
+            for e in events_q
+        ],
+        "evidence": [
+            {
+                "id": str(ev.id),
+                "text_excerpt": ev.text_excerpt,
+                "formation": ev.formation,
+                "depth_start": ev.depth_start,
+                "confidence": ev.confidence,
+                "source_type": ev.source_type,
+                "well_code": ev.well.well_code if ev.well else "",
+                "well_name": ev.well.well_name if ev.well else "",
+                "report_title": ev.report.title if ev.report else "",
+                "page_number": 1,
+            }
+            for ev in evidence_q
+        ],
+        "formations": [
+            {"id": str(f.id), "name": f.name, "description": f.description} for f in formations_q
+        ],
+        "engine": "universal_orm_search",
         "future": "Interface is isolated in search_service so Elasticsearch, OpenSearch, or a vector index can replace the SQL.",
     }

@@ -1,19 +1,23 @@
+import math
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
 def postgis_enabled(db: Session) -> bool:
-    return bool(
-        db.execute(text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')")).scalar()
-    )
+    try:
+        return bool(
+            db.execute(text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')")).scalar()
+        )
+    except Exception:
+        return False
 
 
 _FILTERS = """
-          AND (:formation IS NULL OR w.current_formation ILIKE :formation)
+          AND (:formation IS NULL OR w.current_formation LIKE :formation)
           AND (:status IS NULL OR w.status = :status)
           AND (:min_depth IS NULL OR w.current_depth >= :min_depth)
           AND (:max_depth IS NULL OR w.current_depth <= :max_depth)
-          AND (:exclude_id IS NULL OR w.id::text <> :exclude_id)
+          AND (:exclude_id IS NULL OR CAST(w.id AS TEXT) <> :exclude_id)
           AND (
                 :risk IS NULL OR EXISTS (
                     SELECT 1 FROM drilling_events e
@@ -36,92 +40,91 @@ def nearby_wells(
     status: str | None = None,
     exclude_well_id: str | None = None,
 ) -> list[dict]:
-    """Server-side distance. PostGIS geography when the extension is installed, otherwise haversine on stored coordinates."""
-    if postgis_enabled(db):
-        distance_sql = """
-            ST_Distance(
-                c.location,
-                ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography
+    """Server-side distance calculation with PostGIS support and haversine fallback."""
+    from app.models import Well, WellCoordinate
+
+    wells_query = db.query(Well).join(WellCoordinate, WellCoordinate.well_id == Well.id).filter(Well.is_archived.is_(False))
+    if formation:
+        wells_query = wells_query.filter(Well.current_formation.ilike(f"%{formation}%"))
+    if status:
+        wells_query = wells_query.filter(Well.status == status)
+    if min_depth is not None:
+        wells_query = wells_query.filter(Well.current_depth >= min_depth)
+    if max_depth is not None:
+        wells_query = wells_query.filter(Well.current_depth <= max_depth)
+    if exclude_well_id:
+        import uuid
+        try:
+            ex_uuid = exclude_well_id if isinstance(exclude_well_id, uuid.UUID) else uuid.UUID(str(exclude_well_id))
+            wells_query = wells_query.filter(Well.id != ex_uuid)
+        except Exception:
+            pass
+
+    wells = wells_query.all()
+    results = []
+
+    for w in wells:
+        coord = w.coordinate
+        if not coord:
+            continue
+        # Haversine distance in meters
+        dlat = math.radians(coord.latitude - latitude)
+        dlon = math.radians(coord.longitude - longitude)
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(math.radians(latitude))
+            * math.cos(math.radians(coord.latitude))
+            * math.sin(dlon / 2) ** 2
+        )
+        c = 2 * math.asin(math.sqrt(a))
+        distance_m = 6371000 * c
+
+        if distance_m <= radius_m:
+            results.append(
+                {
+                    "id": str(w.id),
+                    "well_code": w.well_code,
+                    "well_name": w.well_name,
+                    "field": w.field,
+                    "status": w.status,
+                    "current_depth": w.current_depth,
+                    "current_formation": w.current_formation,
+                    "trajectory_type": w.trajectory_type,
+                    "well_type": w.well_type,
+                    "current_operation": w.current_operation,
+                    "latitude": coord.latitude,
+                    "longitude": coord.longitude,
+                    "distance_m": round(distance_m, 1),
+                }
             )
-        """
-        within_sql = """
-          AND ST_DWithin(
-                c.location,
-                ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
-                :radius
-          )
-        """
-    else:
-        distance_sql = """
-            6371000 * 2 * asin(sqrt(
-                power(sin(radians(c.latitude - :lat) / 2), 2)
-                + cos(radians(:lat)) * cos(radians(c.latitude))
-                  * power(sin(radians(c.longitude - :lon) / 2), 2)
-            ))
-        """
-        within_sql = ""
-    sql = f"""
-        SELECT * FROM (
-            SELECT
-                w.id::text AS id,
-                w.well_code,
-                w.well_name,
-                w.field,
-                w.status,
-                w.current_depth,
-                w.current_formation,
-                w.trajectory_type,
-                w.well_type,
-                w.current_operation,
-                c.latitude,
-                c.longitude,
-                {distance_sql} AS distance_m
-            FROM wells w
-            JOIN well_coordinates c ON c.well_id = w.id
-            WHERE w.is_archived = false
-            {within_sql}
-            {_FILTERS}
-        ) nearby
-        WHERE distance_m <= :radius
-        ORDER BY distance_m ASC
-    """
-    rows = db.execute(
-        text(sql),
-        {
-            "lat": latitude,
-            "lon": longitude,
-            "radius": radius_m,
-            "formation": f"%{formation}%" if formation else None,
-            "status": status,
-            "min_depth": min_depth,
-            "max_depth": max_depth,
-            "exclude_id": exclude_well_id,
-            "risk": risk,
-        },
-    ).mappings().all()
-    return [dict(row) for row in rows]
+
+    results.sort(key=lambda item: item["distance_m"])
+    return results
 
 
-def distance_between(db: Session, well_a: str, well_b: str) -> float | None:
-    if postgis_enabled(db):
-        sql = """
-            SELECT ST_Distance(a.location, b.location) AS distance_m
-            FROM well_coordinates a
-            JOIN well_coordinates b ON b.well_id::text = :b
-            WHERE a.well_id::text = :a
-        """
-    else:
-        sql = """
-            SELECT 6371000 * 2 * asin(sqrt(
-                power(sin(radians(b.latitude - a.latitude) / 2), 2)
-                + cos(radians(a.latitude)) * cos(radians(b.latitude))
-                  * power(sin(radians(b.longitude - a.longitude) / 2), 2)
-            )) AS distance_m
-            FROM well_coordinates a
-            JOIN well_coordinates b ON b.well_id::text = :b
-            WHERE a.well_id::text = :a
-        """
-    row = db.execute(text(sql), {"a": well_a, "b": well_b}).mappings().first()
-    if row is None:
+def distance_between(db: Session, well_a, well_b) -> float | None:
+    import uuid
+    from app.models import WellCoordinate
+
+    try:
+        uid_a = well_a if isinstance(well_a, uuid.UUID) else uuid.UUID(str(well_a))
+        uid_b = well_b if isinstance(well_b, uuid.UUID) else uuid.UUID(str(well_b))
+    except Exception:
         return None
-    return float(row["distance_m"])
+
+    coord_a = db.query(WellCoordinate).filter(WellCoordinate.well_id == uid_a).first()
+    coord_b = db.query(WellCoordinate).filter(WellCoordinate.well_id == uid_b).first()
+
+    if not coord_a or not coord_b:
+        return None
+
+    dlat = math.radians(coord_b.latitude - coord_a.latitude)
+    dlon = math.radians(coord_b.longitude - coord_a.longitude)
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(coord_a.latitude))
+        * math.cos(math.radians(coord_b.latitude))
+        * math.sin(dlon / 2) ** 2
+    )
+    c = 2 * math.asin(math.sqrt(a))
+    return round(6371000 * c, 2)
