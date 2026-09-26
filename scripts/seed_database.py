@@ -32,7 +32,7 @@ for candidate in CANDIDATES:
 ROOT = HERE.parent
 
 from app.core.config import get_settings  # noqa: E402
-from app.core.database import SessionLocal  # noqa: E402
+from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models import (  # noqa: E402
     Alert,
@@ -244,8 +244,12 @@ def purge_foreign_data(db) -> None:
 
 
 def seed(clean: bool = True) -> None:
+    # Ensure all tables exist in the database (crucial for fresh cloud databases like Neon)
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        if clean:
+            purge_foreign_data(db)
         # 1. Ensure Roles
         roles: dict[str, Role] = {}
         for name, description in (

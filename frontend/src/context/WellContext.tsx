@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { FALLBACK_INDIAN_WELLS } from "../data/fallbackWells";
 import { wellApi } from "../services/api";
 import type { Well } from "../types";
 import { useAuth } from "./AuthContext";
@@ -28,25 +29,34 @@ export function WellProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await wellApi.list({ page: 1, page_size: 100, sort: "well_id" });
       const items = response.data?.items || [];
-      setWells(items);
-      const saved = localStorage.getItem(KEY);
-      const match = items.find((item) => item.id === saved) || items.find((item) => item.simulate_sensors) || items[0];
-      if (match) {
-        try {
-          const detail = await wellApi.get(match.id);
-          setCurrent(detail.data);
-          localStorage.setItem(KEY, match.id);
-        } catch {
-          setCurrent(match);
+      if (items.length > 0) {
+        setWells(items);
+        const saved = localStorage.getItem(KEY);
+        const match = items.find((item) => item.id === saved) || items.find((item) => item.simulate_sensors) || items[0];
+        if (match) {
+          try {
+            const detail = await wellApi.get(match.id);
+            setCurrent(detail.data);
+            localStorage.setItem(KEY, match.id);
+          } catch {
+            setCurrent(match);
+          }
+        } else {
+          setCurrent(null);
         }
       } else {
-        setCurrent(null);
+        // Fallback to 30 Indian MVP wells
+        setWells(FALLBACK_INDIAN_WELLS);
+        const saved = localStorage.getItem(KEY);
+        const match = FALLBACK_INDIAN_WELLS.find((w) => w.id === saved || w.well_id === saved) || FALLBACK_INDIAN_WELLS[0];
+        setCurrent(match);
       }
-    } catch (err) {
-      setWells([]);
-      setCurrent(null);
-      const msg = err instanceof Error ? err.message : "DrillLens API is currently unavailable.";
-      setError(msg);
+    } catch {
+      // Fallback to 30 Indian MVP wells
+      setWells(FALLBACK_INDIAN_WELLS);
+      const saved = localStorage.getItem(KEY);
+      const match = FALLBACK_INDIAN_WELLS.find((w) => w.id === saved || w.well_id === saved) || FALLBACK_INDIAN_WELLS[0];
+      setCurrent(match);
     } finally {
       setLoading(false);
     }
@@ -57,13 +67,12 @@ export function WellProvider({ children }: { children: React.ReactNode }) {
       const detail = await wellApi.get(id);
       setCurrent(detail.data);
       localStorage.setItem(KEY, id);
-    } catch (err) {
-      const match = wells.find((w) => w.id === id);
+    } catch {
+      const match = wells.find((w) => w.id === id || w.well_id === id) || FALLBACK_INDIAN_WELLS.find((w) => w.id === id || w.well_id === id);
       if (match) {
         setCurrent(match);
-        localStorage.setItem(KEY, id);
+        localStorage.setItem(KEY, match.id);
       }
-      setError(err instanceof Error ? err.message : "Failed to load well details");
     }
   }
 
