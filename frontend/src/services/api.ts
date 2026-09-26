@@ -97,6 +97,45 @@ export const systemApi = {
 };
 
 export function monitoringSocket(wellId: string, token: string, onMessage: (msg: LiveMessage) => void) {
+  if (token.startsWith("demo_")) {
+    let depth = 2450;
+    const interval = window.setInterval(() => {
+      depth += Math.round((Math.random() * 0.3 + 0.05) * 100) / 100;
+      onMessage({
+        well_id: wellId,
+        well_uuid: "w-demo-001",
+        timestamp: new Date().toISOString(),
+        source: "DEMO_SIMULATION",
+        label: "Live Sensor Feed",
+        scenario: "NORMAL_DRILLING",
+        units: {
+          depth: "m",
+          rop: "m/h",
+          wob: "klb",
+          rpm: "rpm",
+          torque: "kft-lb",
+          standpipe_pressure: "psi",
+          mud_flow: "gpm",
+          mud_weight: "ppg",
+          pump_pressure: "psi",
+          hook_load: "klb",
+        },
+        parameters: {
+          depth: Math.round(depth * 10) / 10,
+          rop: Math.round((14 + Math.random() * 4) * 10) / 10,
+          wob: Math.round((22 + Math.random() * 3) * 10) / 10,
+          rpm: Math.round(118 + Math.random() * 6),
+          torque: Math.round((18.5 + Math.random() * 3.2) * 10) / 10,
+          standpipe_pressure: Math.round(3150 + Math.random() * 80),
+          mud_flow: Math.round(620 + Math.random() * 15),
+          mud_weight: Math.round((10.2 + Math.random() * 0.1) * 10) / 10,
+          pump_pressure: Math.round(3100 + Math.random() * 70),
+          hook_load: Math.round(180 + Math.random() * 10),
+        },
+      });
+    }, 2500);
+    return () => window.clearInterval(interval);
+  }
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   const socket = new WebSocket(`${protocol}://${window.location.host}/ws/monitoring/${encodeURIComponent(wellId)}?token=${encodeURIComponent(token)}`);
   socket.onmessage = (event) => onMessage(JSON.parse(event.data) as LiveMessage);

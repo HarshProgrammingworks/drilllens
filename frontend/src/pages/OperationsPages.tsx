@@ -30,7 +30,13 @@ export function DashboardPage() {
         setLatest(params.data?.parameters || null);
         setMeta({ timestamp: params.data?.timestamp, source: params.data?.source, provenance: params.data?.provenance });
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (current.risk_summary?.categories) {
+          setRisks(current.risk_summary.categories);
+        } else {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, [current?.id, live?.timestamp]);
 

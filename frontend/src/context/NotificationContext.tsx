@@ -42,7 +42,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const timer = window.setInterval(() => refresh().catch(() => undefined), 15000);
     const token = getToken();
     let socket: WebSocket | null = null;
-    if (token) {
+    if (token && !token.startsWith("demo_")) {
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       socket = new WebSocket(`${protocol}://${window.location.host}/ws/notifications?token=${encodeURIComponent(token)}`);
       socket.onmessage = () => refresh().catch(() => undefined);

@@ -38,11 +38,20 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If static hosting rewrites /api to index.html, treat as network error
+    if (typeof response.data === "string" && response.data.trim().startsWith("<!doctype html")) {
+      return Promise.reject(new Error("API server not connected."));
+    }
+    return response;
+  },
   (error: AxiosError<{ message?: string; error_code?: string }>) => {
+    const token = getToken();
     if (error.response?.status === 401 && !error.config?.url?.includes("/auth/login")) {
-      clearToken();
-      if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
+      if (!token?.startsWith("demo_")) {
+        clearToken();
+        if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
+      }
     }
     const message = error.response?.data?.message || (error.code === "ECONNABORTED" ? "The request timed out." : error.message || "Network request failed.");
     return Promise.reject(new Error(message));
