@@ -14,3 +14,17 @@ body { margin: 0; background: #0c1118; color: #e7edf5; }
   .btn-primary { @apply bg-slate-100 text-ink border-slate-100 hover:bg-white; }
   .tech { @apply font-mono tabular-nums; }
 }
+
+/* Suppress Netlify badge/overlays that cover custom floating UI */
+#netlify-badge,
+.netlify-badge,
+[class*="netlify-badge"],
+iframe[src*="netlify"],
+div[id*="netlify-banner"],
+div[class*="netlify-banner"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+

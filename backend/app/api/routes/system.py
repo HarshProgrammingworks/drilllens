@@ -174,6 +174,22 @@ def admin_update_user(user_id: str, body: UserUpdate, request: Request, actor: U
     return {"success": True, "data": public_user(target), "message": "User updated."}
 
 
+@router.delete("/admin/users/{user_id}")
+def admin_delete_user(user_id: str, request: Request, actor: User = Depends(require_roles(ROLE_ADMIN)), db: Session = Depends(get_db)):
+    from uuid import UUID
+
+    if str(actor.id) == user_id:
+        raise HTTPException(status_code=400, detail={"message": "You cannot delete your own account.", "error_code": "SELF_DELETION_FORBIDDEN"})
+    target = db.get(User, UUID(user_id))
+    if target is None:
+        raise HTTPException(status_code=404, detail={"message": "User not found.", "error_code": "RESOURCE_NOT_FOUND"})
+    username = target.username
+    db.delete(target)
+    write_audit(db, user_id=actor.id, action="USER_DELETE", resource="user", resource_id=str(user_id), request=request, metadata={"username": username})
+    db.commit()
+    return {"success": True, "data": {"id": user_id, "username": username}, "message": "User deleted."}
+
+
 @router.get("/admin/risk-thresholds")
 def get_thresholds(user: User = Depends(require_roles(ROLE_ADMIN)), db: Session = Depends(get_db)):
     ensure_thresholds(db)
@@ -229,7 +245,7 @@ def audit_logs(
     action: str | None = None,
     page: int = 1,
     page_size: int = 50,
-    user: User = Depends(require_roles(ROLE_ADMIN)),
+    user: User = Depends(require_roles(ROLE_ADMIN, ROLE_ENGINEER)),
     db: Session = Depends(get_db),
 ):
     query = db.query(AuditLog)

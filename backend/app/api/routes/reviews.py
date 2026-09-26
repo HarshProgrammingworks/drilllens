@@ -119,3 +119,19 @@ def update_review(
         .one()
     )
     return {"success": True, "data": serialize_review(loaded), "message": "Review updated."}
+
+
+@router.delete("/{review_id}")
+def delete_review(
+    review_id: UUID,
+    request: Request,
+    user: User = Depends(require_roles(ROLE_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    review = db.get(EngineeringReview, review_id)
+    if review is None:
+        raise HTTPException(status_code=404, detail={"message": "Review not found.", "error_code": "RESOURCE_NOT_FOUND"})
+    db.delete(review)
+    write_audit(db, user_id=user.id, action="RISK_REVIEW_DELETE", resource="engineering_review", resource_id=str(review_id), request=request)
+    db.commit()
+    return {"success": True, "data": {"id": str(review_id)}, "message": "Engineering review deleted."}

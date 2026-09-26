@@ -45,6 +45,7 @@ export const reportApi = {
   ocr: (id: string) => unwrap<Array<Record<string, unknown>>>(api.get(`/reports/${id}/ocr`)),
   upload: (form: FormData) => unwrap<Record<string, unknown>>(api.post("/reports/upload", form)),
   reprocess: (id: string) => unwrap<Record<string, unknown>>(api.post(`/reports/${id}/process`)),
+  delete: (id: string) => unwrap<{ id: string }>(api.delete(`/reports/${id}`)),
   openFile: async (id: string) => {
     const response = await api.get(`/reports/${id}/file`, { responseType: "blob" });
     const url = URL.createObjectURL(response.data);
@@ -84,6 +85,7 @@ export const reviewApi = {
   list: (params?: Record<string, string | undefined>) => unwrap<Array<Record<string, unknown>>>(api.get("/reviews", { params })),
   create: (body: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.post("/reviews", body)),
   update: (id: string, body: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.put(`/reviews/${id}`, body)),
+  delete: (id: string) => unwrap<{ id: string }>(api.delete(`/reviews/${id}`)),
 };
 
 export const systemApi = {
@@ -94,6 +96,7 @@ export const systemApi = {
   users: () => unwrap<User[]>(api.get("/admin/users")),
   createUser: (body: Record<string, unknown>) => unwrap<User>(api.post("/admin/users", body)),
   updateUser: (id: string, body: Record<string, unknown>) => unwrap<User>(api.put(`/admin/users/${id}`, body)),
+  deleteUser: (id: string) => unwrap<{ id: string }>(api.delete(`/admin/users/${id}`)),
   thresholds: () => unwrap<Array<Record<string, unknown>>>(api.get("/admin/risk-thresholds")),
   updateThreshold: (category: string, body: Record<string, unknown>) => unwrap<unknown>(api.put(`/admin/risk-thresholds/${category}`, body)),
   audit: (page = 1) => unwrap<{ items: Array<Record<string, unknown>>; total: number }>(api.get("/admin/audit-logs", { params: { page } })),

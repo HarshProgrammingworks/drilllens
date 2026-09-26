@@ -6,6 +6,7 @@ export interface User {
   email: string;
   full_name: string;
   role: Role;
+  permissions?: string[];
   is_active: boolean;
   last_login?: string | null;
 }

@@ -37,7 +37,7 @@ export function App() {
       <Route path="/admin/users" element={<Shell><RoleGuard allow={["ADMIN"]}><UsersAdminPage /></RoleGuard></Shell>} />
       <Route path="/admin/wells" element={<Shell><RoleGuard allow={["ADMIN"]}><AdminWellsPage /></RoleGuard></Shell>} />
       <Route path="/admin/risk-thresholds" element={<Shell><RoleGuard allow={["ADMIN"]}><ThresholdPage /></RoleGuard></Shell>} />
-      <Route path="/admin/audit-logs" element={<Shell><RoleGuard allow={["ADMIN"]}><AuditPage /></RoleGuard></Shell>} />
+      <Route path="/admin/audit-logs" element={<Shell><RoleGuard allow={["ADMIN", "DRILLING_ENGINEER"]}><AuditPage /></RoleGuard></Shell>} />
       <Route path="/admin/system" element={<Shell><RoleGuard allow={["ADMIN"]}><SystemAdminPage /></RoleGuard></Shell>} />
       <Route path="*" element={<Shell><div className="panel p-4">This page is not part of DrillLens.</div></Shell>} />
     </Routes>

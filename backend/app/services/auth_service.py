@@ -8,17 +8,22 @@ from app.core.security import hash_password, verify_password
 from app.models import PasswordResetToken, Role, User
 
 
+from app.core.rbac import get_role_permissions
+
+
 def role_by_name(db: Session, name: str) -> Role | None:
     return db.query(Role).filter(Role.name == name).one_or_none()
 
 
 def public_user(user: User) -> dict:
+    role_name = user.role.name if user.role else None
     return {
         "id": str(user.id),
         "username": user.username,
         "email": user.email,
         "full_name": user.full_name,
-        "role": user.role.name if user.role else None,
+        "role": role_name,
+        "permissions": get_role_permissions(role_name),
         "is_active": user.is_active,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,

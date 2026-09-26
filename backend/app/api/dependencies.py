@@ -6,20 +6,28 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rbac import Permission, RoleName, has_permission
 from app.core.security import decode_token
 from app.models import RevokedToken, User
 
 bearer = HTTPBearer(auto_error=False)
 
-ROLE_ADMIN = "ADMIN"
-ROLE_ENGINEER = "DRILLING_ENGINEER"
-ROLE_VIEWER = "VIEWER"
+ROLE_ADMIN = RoleName.ADMIN.value
+ROLE_ENGINEER = RoleName.DRILLING_ENGINEER.value
+ROLE_VIEWER = RoleName.VIEWER.value
 
 
 def _unauthorized(message: str = "Authentication is required.") -> HTTPException:
     return HTTPException(
         status_code=401,
         detail={"message": message, "error_code": "UNAUTHORIZED"},
+    )
+
+
+def _forbidden(message: str = "You do not have permission to perform this action.") -> HTTPException:
+    return HTTPException(
+        status_code=403,
+        detail={"message": message, "error_code": "FORBIDDEN"},
     )
 
 
@@ -50,13 +58,19 @@ def require_roles(*roles: str):
     def checker(user: User = Depends(get_current_user)) -> User:
         role_name = user.role.name if user.role else ""
         if role_name not in roles:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "message": "You do not have permission to perform this action.",
-                    "error_code": "FORBIDDEN",
-                },
-            )
+            raise _forbidden()
+        return user
+
+    return checker
+
+
+def require_permissions(*permissions: Permission | str):
+    """Enforce granular RBAC permissions on endpoints."""
+    def checker(user: User = Depends(get_current_user)) -> User:
+        role_name = user.role.name if user.role else ""
+        for perm in permissions:
+            if not has_permission(role_name, perm):
+                raise _forbidden(f"Action requires '{perm.value if isinstance(perm, Permission) else perm}' permission.")
         return user
 
     return checker

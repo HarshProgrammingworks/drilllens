@@ -10,6 +10,7 @@ import type { RiskCard } from "../types";
 import { canWrite } from "../utils/access";
 
 export function ReportsPage() {
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
@@ -23,7 +24,7 @@ export function ReportsPage() {
   }, [q, status, type]);
   return (
     <div className="space-y-3">
-      <div className="flex justify-between"><h1 className="text-xl font-semibold">Historical reports</h1><Link className="btn" to="/reports/upload">Upload</Link></div>
+      <div className="flex justify-between items-center"><h1 className="text-xl font-semibold">Historical reports</h1>{canWrite(user?.role) && <Link className="btn btn-primary" to="/reports/upload">Upload report</Link>}</div>
       <div className="flex gap-2"><input aria-label="Search reports" className="field max-w-xs" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" /><select aria-label="Status" className="field max-w-[180px]" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Status</option>{["UPLOADED", "OCR_PROCESSING", "NLP_PROCESSING", "STRUCTURING", "INDEXING", "COMPLETED", "FAILED"].map((s) => <option key={s}>{s}</option>)}</select><select aria-label="Type" className="field max-w-[140px]" value={type} onChange={(e) => setType(e.target.value)}><option value="">Type</option><option>WCR</option><option>DDR</option><option>OTHER</option></select></div>
       {error && <Status state="error" message={error} />}
       {loading ? <Status state="loading" /> : rows.length === 0 ? <Status state="empty" message="No reports." /> : (
@@ -69,6 +70,7 @@ export function UploadPage() {
 
 export function ReportDetailPage() {
   const { id = "" } = useParams();
+  const { user } = useAuth();
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
   const [pages, setPages] = useState<Array<Record<string, unknown>>>([]);
   const [entities, setEntities] = useState<Array<Record<string, unknown>>>([]);
@@ -100,7 +102,20 @@ export function ReportDetailPage() {
   const done = report.status === "COMPLETED" || report.status === "FAILED";
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{String(report.title)}</h1>
+      <div className="flex justify-between items-center gap-3">
+        <h1 className="text-xl font-semibold">{String(report.title)}</h1>
+        <div className="flex gap-2">
+          <button className="btn" onClick={() => reportApi.openFile(id)}>Open source file</button>
+          {user?.role === "ADMIN" && (
+            <button className="btn text-red-400 border-red-500/30 hover:bg-red-500/20" onClick={async () => {
+              if (window.confirm("Delete this report permanently?")) {
+                await reportApi.delete(id);
+                window.location.href = "/reports";
+              }
+            }}>Delete report</button>
+          )}
+        </div>
+      </div>
       <div className="panel p-3 text-sm grid md:grid-cols-4 gap-2">
         <div>Status {String(report.status)}</div><div>Progress {String(report.progress)}%</div><div>Type {String(report.report_type)}</div><div className="tech">{String(report.well_code || "Unassigned")}</div>
         <Provenance value={String(report.source_type || "")} />
@@ -108,7 +123,6 @@ export function ReportDetailPage() {
       {!done && <Status state="loading" message={`Processing ${String(report.status)} (${String(report.progress)}%).`} />}
       {report.error_message ? <Status state="error" message={String(report.error_message)} /> : null}
       <div className="h-2 bg-slate-800 rounded"><div className="h-2 bg-info rounded" style={{ width: `${Number(report.progress) || 0}%` }} /></div>
-      <button className="btn" onClick={() => reportApi.openFile(id)}>Open source file</button>
       <section><h2 className="font-medium mb-2">Extracted text</h2>{pages.map((p) => <pre key={String(p.id)} className="panel p-3 text-xs whitespace-pre-wrap mb-2">Page {String(p.page_number)} {p.is_scanned ? "(OCR)" : "(embedded text)"}\n{String(p.text_content)}</pre>)}</section>
       <section><h2 className="font-medium mb-2">OCR</h2>{ocr.length === 0 ? <Status state="empty" message="No OCR step was required or stored." /> : ocr.map((row, i) => <pre key={i} className="panel p-3 text-xs whitespace-pre-wrap">Page {String(row.page_number)} confidence {String(row.confidence)} status {String(row.status)}\n{String(row.raw_ocr_text)}</pre>)}</section>
       <section><h2 className="font-medium mb-2">Entities</h2>{entities.length === 0 ? <Status state="empty" message="No entities extracted." /> : <div className="overflow-x-auto panel"><table className="w-full text-sm"><tbody>{entities.map((e) => <tr key={String(e.id)} className="border-t border-line"><td className="p-2">{String(e.entity_type)}</td><td>{String(e.text)}</td><td className="tech">{String(e.confidence)}</td><td>{String(e.extractor)}</td></tr>)}</tbody></table></div>}</section>

@@ -36,6 +36,7 @@ export function UsersAdminPage() {
             <option>VIEWER</option><option>DRILLING_ENGINEER</option><option>ADMIN</option>
           </select>
           <button className="btn" onClick={async () => { await systemApi.updateUser(user.id, { is_active: !user.is_active }); await load(); }}>{user.is_active ? "Deactivate" : "Activate"}</button>
+          <button className="btn text-red-400 hover:bg-red-500/20 border-red-500/30" onClick={async () => { if (window.confirm(`Delete user ${user.username}?`)) { await systemApi.deleteUser(user.id); await load(); } }}>Delete</button>
         </article>
       ))}</div>
     </div>

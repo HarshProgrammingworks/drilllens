@@ -74,27 +74,28 @@ export function AiCopilot() {
       {/* Floating Copilot Launcher Button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 text-white font-medium text-sm shadow-xl shadow-blue-900/40 hover:scale-105 active:scale-95 transition-all border border-blue-400/30"
+        className="fixed bottom-7 right-6 md:bottom-8 md:right-8 z-[99999] flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 text-white font-semibold text-sm md:text-base shadow-2xl shadow-sky-900/60 hover:scale-105 active:scale-95 transition-all border-2 border-sky-300/40 hover:border-sky-200"
         title="Open DrillLens Gemini AI Copilot"
+        id="ai-copilot-launcher"
       >
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-200 opacity-80"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-sm"></span>
         </span>
-        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className="w-5 h-5 text-sky-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
           <path d="M12 2a10 10 0 0 1 10 10c0 5.5-4.5 10-10 10S2 17.5 2 12A10 10 0 0 1 12 2z" />
           <path d="M12 8v4l3 3" />
         </svg>
-        <span>Gemini AI Copilot</span>
+        <span className="tracking-wide drop-shadow">Gemini AI Copilot</span>
       </button>
 
       {/* AI Chat Modal / Drawer */}
       {open && (
-        <div className="fixed bottom-20 right-5 z-50 w-[92vw] sm:w-[420px] h-[540px] max-h-[85vh] panel flex flex-col bg-slate-900/95 backdrop-blur-md border border-sky-500/30 shadow-2xl rounded-xl overflow-hidden animate-fadeIn">
+        <div className="fixed bottom-24 right-6 md:right-8 z-[99999] w-[92vw] sm:w-[440px] h-[560px] max-h-[85vh] panel flex flex-col bg-slate-900/98 backdrop-blur-lg border border-sky-500/40 shadow-2xl rounded-2xl overflow-hidden animate-fadeIn">
           {/* Header */}
-          <div className="p-3.5 bg-slate-950/80 border-b border-line flex items-center justify-between">
+          <div className="p-3.5 bg-slate-950/90 border-b border-line flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
                 ✦
               </div>
               <div>

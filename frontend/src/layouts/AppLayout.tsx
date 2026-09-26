@@ -92,14 +92,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {label}
             </NavLink>
           ))}
-          {canAdmin(user?.role) && (
+          {canAdmin(user?.role) ? (
             <div className="pt-4">
-              <div className="px-3 text-[11px] uppercase tracking-wide text-muted">Admin</div>
+              <div className="px-3 text-[11px] uppercase tracking-wide text-muted">Administration</div>
               {[["/admin/users", "Users"], ["/admin/wells", "Wells"], ["/admin/risk-thresholds", "Risk Thresholds"], ["/admin/audit-logs", "Audit Logs"], ["/admin/system", "System"]].map(([path, label]) => (
                 <NavLink key={path} to={path} onClick={() => setOpen(false)} className={({ isActive }) => `block rounded px-3 py-2 text-sm ${isActive ? "bg-slate-800 text-white" : "text-muted hover:text-white"}`}>{label}</NavLink>
               ))}
             </div>
-          )}
+          ) : user?.role === "DRILLING_ENGINEER" ? (
+            <div className="pt-4">
+              <div className="px-3 text-[11px] uppercase tracking-wide text-muted">Operations</div>
+              <NavLink to="/admin/audit-logs" onClick={() => setOpen(false)} className={({ isActive }) => `block rounded px-3 py-2 text-sm ${isActive ? "bg-slate-800 text-white" : "text-muted hover:text-white"}`}>Audit Logs</NavLink>
+            </div>
+          ) : null}
         </nav>
       </aside>
       <div className="flex-1 min-w-0">

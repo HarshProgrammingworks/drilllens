@@ -235,6 +235,23 @@ def reprocess(
     return {"success": True, "data": _serialize(report), "message": "Processing restarted."}
 
 
+@router.delete("/{report_id}")
+def delete_report(
+    report_id: UUID,
+    request: Request,
+    user: User = Depends(require_roles(ROLE_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    report = db.get(HistoricalReport, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail={"message": "Report not found.", "error_code": "RESOURCE_NOT_FOUND"})
+    title = report.title
+    db.delete(report)
+    write_audit(db, user_id=user.id, action="REPORT_DELETE", resource="report", resource_id=str(report_id), request=request, metadata={"title": title})
+    db.commit()
+    return {"success": True, "data": {"id": str(report_id)}, "message": "Report deleted."}
+
+
 @router.get("/{report_id}/file")
 def download(report_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     report = db.get(HistoricalReport, report_id)
