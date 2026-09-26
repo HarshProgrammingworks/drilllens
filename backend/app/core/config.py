@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     risk_engine: str = "rule_based"
     enable_spacy: bool = True
     enable_transformers: bool = False
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-flash-latest"
     app_version: str = "1.0.0"
     app_name: str = "DrillLens"
 

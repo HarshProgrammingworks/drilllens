@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import alerts, auth, evidence, monitoring, reports, reviews, risk, search, system, wells
+from app.api.routes import ai, alerts, auth, evidence, monitoring, reports, reviews, risk, search, system, wells
 from app.core.config import get_settings
 from app.core.logging import log
 from app.workers.sensor_worker import sensor_loop
@@ -95,7 +95,7 @@ async def unhandled(request: Request, exc: Exception):
     )
 
 
-for module in (auth, wells, reports, search, risk, alerts, evidence, reviews, system):
+for module in (ai, auth, wells, reports, search, risk, alerts, evidence, reviews, system):
     app.include_router(module.router, prefix="/api")
 app.include_router(monitoring.router)
 

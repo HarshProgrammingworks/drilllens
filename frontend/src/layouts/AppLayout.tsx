@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { getToken } from "../api/client";
+import { AiCopilot } from "../components/AiCopilot";
 import { useAuth } from "../context/AuthContext";
 import { useNotes } from "../context/NotificationContext";
 import { useWells } from "../context/WellContext";
@@ -161,6 +162,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
         <main className="p-4 lg:p-6">{children}</main>
       </div>
+      <AiCopilot />
     </div>
   );
 }

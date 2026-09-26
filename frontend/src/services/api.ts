@@ -73,6 +73,13 @@ export const searchApi = {
   query: (q: string) => unwrap<Record<string, unknown>>(api.get("/search", { params: { q } })),
 };
 
+export const aiApi = {
+  ask: (prompt: string, wellId?: string, context?: string) =>
+    unwrap<{ answer: string; model: string; provider: string }>(api.post("/ai/ask", { prompt, well_id: wellId, context })),
+  analyzeWell: (wellId: string) =>
+    unwrap<{ well_id: string; analysis: string; model: string }>(api.post(`/ai/analyze-well/${wellId}`)),
+};
+
 export const reviewApi = {
   list: (params?: Record<string, string | undefined>) => unwrap<Array<Record<string, unknown>>>(api.get("/reviews", { params })),
   create: (body: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.post("/reviews", body)),
