@@ -1,36 +1,40 @@
 {
+  "version": 2,
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
-  "framework": "vite",
   "functions": {
-    "api/*.py": {
-      "runtime": "@vercel/python"
+    "api/index.py": {
+      "runtime": "@vercel/python",
+      "includeFiles": "{backend/**,scripts/**}"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/health/(.*)",
-      "destination": "/api/index.py"
+      "src": "/health",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/health",
-      "destination": "/api/index.py"
+      "src": "/health/(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/docs",
-      "destination": "/api/index.py"
+      "src": "/docs",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/openapi.json",
-      "destination": "/api/index.py"
+      "src": "/openapi.json",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
