@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotes } from "../context/NotificationContext";
 import { useWells } from "../context/WellContext";
-import { searchApi } from "../services/api";
+import { searchApi, systemApi } from "../services/api";
 import { canAdmin, canWrite } from "../utils/access";
 
 const LINKS = [
@@ -32,13 +32,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Record<string, Array<Record<string, string>>> | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("Checking system...");
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
     document.title = "DrillLens | eRTMAC-NWIS";
-    const ping = () => fetch("/health").then((r) => setOnline(r.ok)).catch(() => setOnline(false));
-    ping();
-    const timer = window.setInterval(ping, 20000);
+    const checkSystem = async () => {
+      try {
+        await systemApi.health();
+        try {
+          await systemApi.healthDatabase();
+          setOnline(true);
+          setStatusMessage("System online");
+        } catch {
+          setOnline(false);
+          setStatusMessage("Database unavailable");
+        }
+      } catch {
+        setOnline(false);
+        setStatusMessage("Backend unavailable");
+      }
+    };
+    checkSystem();
+    const timer = window.setInterval(checkSystem, 20000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -85,7 +101,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="font-semibold leading-tight">DrillLens</div>
             <div className="text-[11px] text-muted">Real-Time Drilling Intelligence</div>
           </div>
-          <div className={`text-xs border rounded px-2 py-1 ${online ? "text-ok border-ok/40" : "text-crit border-crit"}`} role="status">{online ? "System online" : "System unreachable"}</div>
+          <div className={`text-xs border rounded px-2 py-1 ${online ? "text-ok border-ok/40" : "text-crit border-crit"}`} role="status">{statusMessage}</div>
           <label className="text-xs text-muted">
             Current well
             <select aria-label="Current well" className="field ml-2 w-48" value={current?.id || ""} onChange={(e) => select(e.target.value)}>

@@ -1,4 +1,4 @@
-import { api } from "../api/client";
+import { api, getApiBaseUrl, getWsBaseUrl } from "../api/client";
 import type { ApiEnvelope, LiveMessage, ParameterPoint, RiskCard, User, Well } from "../types";
 
 async function unwrap<T>(promise: Promise<{ data: ApiEnvelope<T> }>) {
@@ -94,6 +94,20 @@ export const systemApi = {
   weights: () => unwrap<Record<string, number>>(api.get("/admin/similarity-weights")),
   updateWeights: (body: Record<string, number>) => unwrap<unknown>(api.put("/admin/similarity-weights", body)),
   uploads: () => unwrap<Array<Record<string, unknown>>>(api.get("/admin/uploads")),
+  health: async () => {
+    const base = getApiBaseUrl();
+    const url = base ? `${base}/health` : "/health";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Backend unavailable");
+    return res.json();
+  },
+  healthDatabase: async () => {
+    const base = getApiBaseUrl();
+    const url = base ? `${base}/health/database` : "/health/database";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Database unavailable");
+    return res.json();
+  },
 };
 
 export function monitoringSocket(wellId: string, token: string, onMessage: (msg: LiveMessage) => void) {
@@ -136,8 +150,8 @@ export function monitoringSocket(wellId: string, token: string, onMessage: (msg:
     }, 2500);
     return () => window.clearInterval(interval);
   }
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const socket = new WebSocket(`${protocol}://${window.location.host}/ws/monitoring/${encodeURIComponent(wellId)}?token=${encodeURIComponent(token)}`);
+  const wsBase = getWsBaseUrl();
+  const socket = new WebSocket(`${wsBase}/ws/monitoring/${encodeURIComponent(wellId)}?token=${encodeURIComponent(token)}`);
   socket.onmessage = (event) => onMessage(JSON.parse(event.data) as LiveMessage);
   const ping = window.setInterval(() => {
     if (socket.readyState === WebSocket.OPEN) socket.send("ping");

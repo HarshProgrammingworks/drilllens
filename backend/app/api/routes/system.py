@@ -28,7 +28,10 @@ def health():
 @router.get("/health/database")
 def health_db(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
-    postgis = db.execute(text("SELECT PostGIS_Version()")).scalar()
+    try:
+        postgis = db.execute(text("SELECT PostGIS_Version()")).scalar()
+    except Exception:
+        postgis = "spatial_fallback (haversine)"
     return {"success": True, "data": {"database": "ok", "postgis": postgis}, "message": None}
 
 

@@ -13,7 +13,7 @@ import { canAdmin, canWrite } from "../utils/access";
 const FLOW = ["Current well", "Live parameters", "Nearby wells", "Historical events", "Similarity", "Risk", "Evidence", "Review"];
 
 export function DashboardPage() {
-  const { current } = useWells();
+  const { current, loading: wellsLoading, error: wellsError } = useWells();
   const { live, history } = useMonitoring();
   const [risks, setRisks] = useState<RiskCard[]>([]);
   const [latest, setLatest] = useState<Record<string, { value: number; unit: string }> | null>(null);
@@ -31,16 +31,14 @@ export function DashboardPage() {
         setMeta({ timestamp: params.data?.timestamp, source: params.data?.source, provenance: params.data?.provenance });
       })
       .catch((err) => {
-        if (current.risk_summary?.categories) {
-          setRisks(current.risk_summary.categories);
-        } else {
-          setError(err.message);
-        }
+        setError(err instanceof Error ? err.message : "DrillLens API is currently unavailable.");
       })
       .finally(() => setLoading(false));
   }, [current?.id, live?.timestamp]);
 
-  if (!current) return <Status state={loading ? "loading" : "empty"} message="No well is available." />;
+  if (wellsError) return <Status state="error" message={wellsError} />;
+  if (wellsLoading) return <Status state="loading" message="Loading drilling data..." />;
+  if (!current) return <Status state="empty" message="No well data available." />;
   const values = live?.parameters;
   return (
     <div className="space-y-4">

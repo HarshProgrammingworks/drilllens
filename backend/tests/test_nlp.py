@@ -18,7 +18,7 @@ def test_demo_report_extracts_depth_formation_and_events():
     assert "LOST_CIRCULATION" in categories
     stuck = next(event for event in events if event.risk_category == "STUCK_PIPE")
     assert stuck.depth_start == 2450
-    assert stuck.formation == "Wolfcamp"
+    assert stuck.formation == "Barmer Hill"
     assert stuck.action_taken == "Reduced WOB"
     assert stuck.outcome == "Torque stabilized"
 

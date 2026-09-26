@@ -38,7 +38,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list or ["http://localhost:8080"],
+    allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"^https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,7 +105,10 @@ def health_database_alias(db: Session = Depends(get_db)):
     from sqlalchemy import text
 
     db.execute(text("SELECT 1"))
-    postgis = db.execute(text("SELECT PostGIS_Version()")).scalar()
+    try:
+        postgis = db.execute(text("SELECT PostGIS_Version()")).scalar()
+    except Exception:
+        postgis = "spatial_fallback (haversine)"
     return {"success": True, "data": {"database": "ok", "postgis": postgis}, "message": None}
 
 

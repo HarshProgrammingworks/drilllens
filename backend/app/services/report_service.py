@@ -64,11 +64,11 @@ def process_report(db: Session, report_id: UUID) -> HistoricalReport:
         else:
             pages = extract_text_file(path)
 
-        db.query(ReportPage).filter(ReportPage.report_id == report.id).delete()
-        db.query(OcrResult).filter(OcrResult.report_id == report.id).delete()
-        db.query(NlpEntity).filter(NlpEntity.report_id == report.id).delete()
         db.query(Evidence).filter(Evidence.report_id == report.id).delete()
         db.query(DrillingEvent).filter(DrillingEvent.report_id == report.id).delete()
+        db.query(OcrResult).filter(OcrResult.report_id == report.id).delete()
+        db.query(NlpEntity).filter(NlpEntity.report_id == report.id).delete()
+        db.query(ReportPage).filter(ReportPage.report_id == report.id).delete()
         db.flush()
 
         page_rows: list[ReportPage] = []

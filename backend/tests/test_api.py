@@ -80,7 +80,8 @@ def test_rbac_viewer_cannot_create_well_or_change_threshold():
     nearby = client.get("/api/wells/nearby", headers=auth(engineer), params={"latitude": 31.85, "longitude": -102.35, "radius": 25})
     assert nearby.status_code == 200
     assert nearby.json()["data"]
-    assert nearby.json()["data"][0]["distance_method"].startswith("PostGIS")
+    method = nearby.json()["data"][0]["distance_method"]
+    assert method.startswith("PostGIS") or "haversine" in method
     blocked = client.put(
         "/api/admin/risk-thresholds/STUCK_PIPE",
         headers=auth(engineer),
@@ -100,13 +101,13 @@ def test_rbac_viewer_cannot_create_well_or_change_threshold():
 
 def test_upload_search_similarity_and_risk():
     engineer = login("engineer", "Engineer123!")
-    wells = client.get("/api/wells", headers=auth(engineer), params={"q": "WL-001"})
+    wells = client.get("/api/wells", headers=auth(engineer), params={"q": "WL-IN-001"})
     well = wells.json()["data"]["items"][0]
     content = (pytest.importorskip("pathlib").Path(__file__).resolve().parents[2] / "scripts" / "WCR_DEMO_001.txt").read_bytes()
     upload = client.post(
         "/api/reports/upload",
         headers=auth(engineer),
-        data={"title": "API upload demo", "report_type": "WCR", "well_id": "WL-002"},
+        data={"title": "API upload demo", "report_type": "WCR", "well_id": "WL-IN-002"},
         files={"file": ("WCR_DEMO_001.txt", content, "text/plain")},
     )
     assert upload.status_code == 200, upload.text

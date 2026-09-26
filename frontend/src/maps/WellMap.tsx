@@ -15,14 +15,15 @@ export interface MapWell {
   kind: "current" | "nearby" | "historical" | "risk";
 }
 
-const COLOR = { current: "#d4a017", nearby: "#3d8bfd", historical: "#93a4b8", risk: "#d64545" };
+const COLOR = { current: "#d4a017", nearby: "#3d8bfd", historical: "#3d8bfd", risk: "#d64545" };
 
 export function WellMap({ wells, trajectories, tileUrl }: { wells: MapWell[]; trajectories?: Array<{ id: string; positions: [number, number][] }>; tileUrl: string }) {
-  const center = wells.find((well) => well.kind === "current") || wells[0];
-  if (!center) return <div className="panel p-4 text-sm text-muted">No well coordinates are available.</div>;
+  const currentWell = wells.find((well) => well.kind === "current");
+  const center: [number, number] = currentWell ? [currentWell.latitude, currentWell.longitude] : [22.5937, 78.9629];
+  const zoom = currentWell ? 9 : 5;
   return (
     <div className="h-[560px] panel overflow-hidden">
-      <MapContainer center={[center.latitude, center.longitude]} zoom={10} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
         <TileLayer attribution='&copy; OpenStreetMap' url={tileUrl} />
         {trajectories?.map((line) => <Polyline key={line.id} positions={line.positions} pathOptions={{ color: "#3d8bfd", weight: 2 }} />)}
         {wells.map((well) => (
