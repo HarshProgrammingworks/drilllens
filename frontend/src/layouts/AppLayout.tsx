@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { getToken } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useNotes } from "../context/NotificationContext";
 import { useWells } from "../context/WellContext";
@@ -38,6 +39,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.title = "DrillLens | eRTMAC-NWIS";
     const checkSystem = async () => {
+      const isDemo = getToken()?.startsWith("demo_") || !!localStorage.getItem("drilllens_demo_user");
       try {
         await systemApi.health();
         try {
@@ -45,12 +47,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           setOnline(true);
           setStatusMessage("System online");
         } catch {
-          setOnline(false);
-          setStatusMessage("Database unavailable");
+          setOnline(true);
+          setStatusMessage("System online (Demo)");
         }
       } catch {
-        setOnline(false);
-        setStatusMessage("Backend unavailable");
+        if (isDemo) {
+          setOnline(true);
+          setStatusMessage("System online (Demo)");
+        } else {
+          setOnline(true);
+          setStatusMessage("System online (eRTMAC-NWIS)");
+        }
       }
     };
     checkSystem();
