@@ -44,7 +44,11 @@ export function getWsBaseUrl(): string {
   return `${protocol}//${window.location.host}`;
 }
 
-export const api = axios.create({ baseURL: RAW_BASE ? `${RAW_BASE}/api` : "/api", timeout: 30000 });
+const resolvedApiBase = RAW_BASE
+  ? (RAW_BASE.endsWith("/api") ? RAW_BASE : `${RAW_BASE}/api`)
+  : "/api";
+
+export const api = axios.create({ baseURL: resolvedApiBase, timeout: 30000 });
 
 api.interceptors.request.use((config) => {
   const token = getToken();
