@@ -26,8 +26,16 @@ async def lifespan(app: FastAPI):
         with SessionLocal() as db:
             from app.models import Well
             if db.query(Well).count() < 30:
-                from scripts.seed_database import seed
-                seed(clean=False)
+                import sys
+                from pathlib import Path
+                for root in [Path.cwd(), Path(__file__).resolve().parent.parent.parent, Path("/app")]:
+                    if str(root) not in sys.path:
+                        sys.path.insert(0, str(root))
+                try:
+                    from scripts.seed_database import seed
+                    seed(clean=False)
+                except Exception as seed_err:
+                    log.warning("Seed script notice: %s", seed_err)
     except Exception as e:
         log.warning("Database auto-initialization notice: %s", e)
 
