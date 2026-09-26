@@ -9,7 +9,7 @@ export function AiCopilot() {
   const [messages, setMessages] = useState<Array<{ sender: "user" | "gemini"; text: string; time: string }>>([
     {
       sender: "gemini",
-      text: "👋 Hello! I am DrillLens AI Copilot powered by Google Gemini Flash. How can I assist with your well telemetry, risk evaluation, or offset engineering analysis today?",
+      text: "👋 Hello! I am DrillLens AI. How can I assist with your well telemetry, risk evaluation, or offset engineering analysis today?",
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -31,7 +31,7 @@ export function AiCopilot() {
 
     try {
       const response = await aiApi.ask(textToSend.trim(), current?.id);
-      const answer = response.data?.answer || "No response received from Gemini.";
+      const answer = response.data?.answer || "No response received from DrillLens AI.";
       setMessages((prev) => [
         ...prev,
         {
@@ -74,46 +74,46 @@ export function AiCopilot() {
       {/* Floating Copilot Launcher Button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-7 right-6 md:bottom-8 md:right-8 z-[99999] flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 text-white font-semibold text-sm md:text-base shadow-2xl shadow-sky-900/60 hover:scale-105 active:scale-95 transition-all border-2 border-sky-300/40 hover:border-sky-200"
-        title="Open DrillLens Gemini AI Copilot"
+        className="fixed bottom-7 right-6 md:bottom-8 md:right-8 z-[99999] flex items-center gap-3.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 text-white font-bold text-base md:text-lg shadow-2xl shadow-sky-950/80 hover:scale-105 active:scale-95 transition-all border-2 border-sky-300/50 hover:border-sky-100"
+        title="Open DrillLens AI"
         id="ai-copilot-launcher"
       >
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-200 opacity-80"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-sm"></span>
+        <span className="relative flex h-3.5 w-3.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-200 opacity-90"></span>
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-white shadow-md"></span>
         </span>
-        <svg className="w-5 h-5 text-sky-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+        <svg className="w-6 h-6 text-sky-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
           <path d="M12 2a10 10 0 0 1 10 10c0 5.5-4.5 10-10 10S2 17.5 2 12A10 10 0 0 1 12 2z" />
           <path d="M12 8v4l3 3" />
         </svg>
-        <span className="tracking-wide drop-shadow">Gemini AI Copilot</span>
+        <span className="tracking-wide drop-shadow-md">DrillLens AI</span>
       </button>
 
       {/* AI Chat Modal / Drawer */}
       {open && (
-        <div className="fixed bottom-24 right-6 md:right-8 z-[99999] w-[92vw] sm:w-[440px] h-[560px] max-h-[85vh] panel flex flex-col bg-slate-900/98 backdrop-blur-lg border border-sky-500/40 shadow-2xl rounded-2xl overflow-hidden animate-fadeIn">
+        <div className="fixed bottom-26 right-6 md:right-8 z-[99999] w-[92vw] sm:w-[460px] h-[580px] max-h-[85vh] panel flex flex-col bg-slate-900/98 backdrop-blur-lg border border-sky-500/40 shadow-2xl rounded-2xl overflow-hidden animate-fadeIn">
           {/* Header */}
-          <div className="p-3.5 bg-slate-950/90 border-b border-line flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+          <div className="p-4 bg-slate-950/90 border-b border-line flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
                 ✦
               </div>
               <div>
-                <div className="text-sm font-semibold text-white flex items-center gap-1.5">
-                  DrillLens AI Copilot
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                    Gemini Flash
+                <div className="text-base font-semibold text-white flex items-center gap-2">
+                  DrillLens AI
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                    Live Assistant
                   </span>
                 </div>
-                <div className="text-[11px] text-muted">
+                <div className="text-xs text-muted">
                   Active Context: {current?.well_name || "All Wells"}
                 </div>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 text-sm font-bold"
-              aria-label="Close Gemini Copilot"
+              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 text-base font-bold transition-colors"
+              aria-label="Close DrillLens AI"
             >
               ✕
             </button>
