@@ -28,7 +28,23 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const DEFAULT_REMOTE_BACKEND = "https://drilllens-1.onrender.com";
+
+function computeBaseUrl(): string {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return (import.meta.env.VITE_API_BASE_URL as string).replace(/\/$/, "");
+  }
+  if (typeof window !== "undefined") {
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (!isLocal) {
+      return DEFAULT_REMOTE_BACKEND;
+    }
+  }
+  return "";
+}
+
+const RAW_BASE = computeBaseUrl();
+
 export function getApiBaseUrl(): string {
   return RAW_BASE;
 }
@@ -37,8 +53,9 @@ export function getWsBaseUrl(): string {
   if (import.meta.env.VITE_WS_BASE_URL) {
     return (import.meta.env.VITE_WS_BASE_URL as string).replace(/\/$/, "");
   }
-  if (RAW_BASE) {
-    return RAW_BASE.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+  const base = RAW_BASE || DEFAULT_REMOTE_BACKEND;
+  if (base) {
+    return base.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
   }
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}`;
@@ -46,7 +63,7 @@ export function getWsBaseUrl(): string {
 
 const resolvedApiBase = RAW_BASE
   ? (RAW_BASE.endsWith("/api") ? RAW_BASE : `${RAW_BASE}/api`)
-  : "/api";
+  : `${DEFAULT_REMOTE_BACKEND}/api`;
 
 export const api = axios.create({ baseURL: resolvedApiBase, timeout: 30000 });
 
