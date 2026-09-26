@@ -19,14 +19,19 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(sensor_loop())
+    import os
+    is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    task = None
+    if not is_serverless:
+        task = asyncio.create_task(sensor_loop())
     log.info("DrillLens API started")
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
