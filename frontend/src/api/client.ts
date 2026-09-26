@@ -28,7 +28,8 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
-export const api = axios.create({ baseURL: "/api", timeout: 30000 });
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+export const api = axios.create({ baseURL: API_BASE ? `${API_BASE}/api` : "/api", timeout: 30000 });
 
 api.interceptors.request.use((config) => {
   const token = getToken();
