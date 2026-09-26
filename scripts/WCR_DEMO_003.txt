@@ -1,0 +1,16 @@
+WELL COMPLETION REPORT WCR_DEMO_003
+Source type: DEMO
+Well: Cambay Gandhar 08
+Well ID: WL-IN-009
+Field: Gandhar Field
+Operator: ONGC
+Report type: WCR
+Date: 2024-03-02
+
+Summary of Drilling Operations:
+Target depth of 2980 m reached in Hazad prograding deltaic sandstone member.
+At 2740 m, unexpected overpressure encountered in Hazad sands with standpipe pressure spike of 280 psi and pit gain of 12 bbl. The well was shut in and influx circulated out through the choke manifold. Kill mud weight adjusted to 11.2 ppg.
+At 2850 m, minor lost circulation observed in fractured interval. Pumped 30 bbl calcium carbonate LCM pill and stabilized fluid level.
+
+Final Completion:
+7 in casing set at 2950 m and cemented. Production tubing installed with dual packer configuration.

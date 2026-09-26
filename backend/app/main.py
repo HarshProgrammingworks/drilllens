@@ -20,6 +20,17 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import os
+    from app.core.database import Base, engine, SessionLocal
+    try:
+        Base.metadata.create_all(bind=engine)
+        with SessionLocal() as db:
+            from app.models import Well
+            if db.query(Well).count() < 30:
+                from scripts.seed_database import seed
+                seed(clean=False)
+    except Exception as e:
+        log.warning("Database auto-initialization notice: %s", e)
+
     is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
     task = None
     if not is_serverless:

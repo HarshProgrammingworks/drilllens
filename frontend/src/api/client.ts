@@ -63,10 +63,8 @@ api.interceptors.response.use(
   (error: AxiosError<{ message?: string; error_code?: string; detail?: string }>) => {
     const token = getToken();
     if (error.response?.status === 401 && !error.config?.url?.includes("/auth/login")) {
-      if (!token?.startsWith("demo_")) {
-        clearToken();
-        if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
-      }
+      clearToken();
+      if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
       return Promise.reject(new Error("Your session has expired. Please log in again."));
     }
     if (error.response?.status === 503) {

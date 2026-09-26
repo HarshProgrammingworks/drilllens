@@ -1,0 +1,22 @@
+DAILY DRILLING REPORT DDR_DEMO_004
+Source type: DEMO
+Well: KG Razole Deep 03
+Well ID: WL-IN-020
+Field: Razole Field
+Operator: ONGC
+Report type: DDR
+Date: 2024-01-08
+
+Daily Drilling Progress:
+Drilling 5-7/8 in high pressure high temperature section at depth 3640 m in Gollapalli Formation.
+At 3640 m, gas influx recorded on rig sensors. Standpipe pressure rose to 3450 psi. Annular preventer closed. SICP reached 720 psi. Kill mud density increased to 12.8 ppg.
+Bulls-headed kill mud and circulated through degasser. Well killed and secondary barrier restored.
+
+Current Parameters:
+Depth: 3640 m
+ROP: 8.2 m/h
+WOB: 19.5 klb
+RPM: 95
+Standpipe Pressure: 3450 psi
+Mud Weight: 12.8 ppg
+Torque: 22.0 kft-lb

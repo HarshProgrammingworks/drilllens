@@ -1,0 +1,22 @@
+DAILY DRILLING REPORT DDR_DEMO_002
+Source type: DEMO
+Well: Barmer Mangala 01
+Well ID: WL-IN-001
+Field: Mangala Field
+Operator: Cairn Oil & Gas
+Report type: DDR
+Date: 2024-02-10
+
+Operations Summary:
+Drilling 8-1/2 in section from 2350 m to 2450 m in Fatehgarh Formation.
+At 2380 m, tight hole and high torque led to stuck pipe indicator. Drill string was worked with 45 klb overpull and jars were activated. WOB was reduced to 16 klb and rotation resumed.
+At 2420 m, continuous mud logging recorded background gas increase from 0.8% to 2.4%. Mud weight was maintained at 10.4 ppg.
+
+Drilling Parameters:
+WOB: 18 klb
+RPM: 120
+ROP: 18.5 m/h
+Torque: 24.5 kft-lb
+Standpipe Pressure: 3180 psi
+Mud Flow Rate: 630 gpm
+Mud Weight: 10.4 ppg

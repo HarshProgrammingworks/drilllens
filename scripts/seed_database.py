@@ -353,54 +353,68 @@ def seed(clean: bool = True) -> None:
         db.commit()
         print(f"Successfully created {len(wells)} Indian wells in database.")
 
-        # 6. Seed Drilling Parameters for Primary Active Well (WL-IN-001)
-        primary = wells["WL-IN-001"]
+        # 6. Seed Drilling Parameters for ALL 30 Indian Wells
         now = datetime.now(timezone.utc)
-        print("Generating telemetry stream for primary well WL-IN-001...")
-        for index in range(40):
-            stamp = now - timedelta(minutes=(40 - index) * 2)
-            db.add(
-                DrillingParameter(
-                    well_id=primary.id,
-                    recorded_at=stamp,
-                    depth=round(2420 + index * 0.75, 1),
-                    rop=round(16.5 + math.sin(index / 3) * 3, 1),
-                    wob=round(22.0 + 0.4 * math.sin(index / 4), 1),
-                    rpm=round(118 + math.sin(index / 2) * 5),
-                    torque=round(24.5 + 1.2 * math.sin(index / 5), 1),
-                    standpipe_pressure=round(3150 + 40 * math.sin(index / 3)),
-                    mud_flow=round(625 + 10 * math.sin(index / 4)),
-                    mud_weight=1.18,
-                    pump_pressure=round(3100 + 35 * math.sin(index / 3)),
-                    hook_load=round(175 + math.sin(index / 6) * 5),
-                    source="HISTORICAL",
-                    provenance="HISTORICAL REPORT",
+        print("Generating telemetry parameter streams for all 30 Indian wells...")
+        for code, well in wells.items():
+            pts_count = 40 if code == "WL-IN-001" else 15
+            base_depth = well.current_depth or 2000
+            for index in range(pts_count):
+                stamp = now - timedelta(minutes=(pts_count - index) * 2)
+                d_val = round(base_depth - (pts_count - 1 - index) * 0.8, 1)
+                db.add(
+                    DrillingParameter(
+                        well_id=well.id,
+                        recorded_at=stamp,
+                        depth=d_val,
+                        rop=round(14.0 + math.sin(index / 2.5) * 3.5, 1),
+                        wob=round(20.0 + 0.5 * math.sin(index / 3.0), 1),
+                        rpm=round(110 + math.sin(index / 2.0) * 8),
+                        torque=round(22.0 + 1.5 * math.sin(index / 4.0), 1),
+                        standpipe_pressure=round(3100 + 45 * math.sin(index / 3.0)),
+                        mud_flow=round(620 + 12 * math.sin(index / 3.5)),
+                        mud_weight=round(10.2 + 0.1 * math.sin(index / 5.0), 1),
+                        pump_pressure=round(3050 + 40 * math.sin(index / 3.0)),
+                        hook_load=round(170 + math.sin(index / 5.0) * 8),
+                        source="HISTORICAL",
+                        provenance="HISTORICAL REPORT",
+                    )
                 )
-            )
         db.commit()
 
-        # 7. Create Historical Report and process with OCR/NLP
+        # 7. Create Historical Reports and process with OCR/NLP
         upload_root = Path(get_settings().upload_directory) / "reports"
         upload_root.mkdir(parents=True, exist_ok=True)
-        source = Path(__file__).with_name("WCR_DEMO_001.txt")
-        target = upload_root / "WCR_DEMO_001.txt"
-        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        
+        report_files = [
+            ("WCR_DEMO_001.txt", "WL-IN-002", "WCR_DEMO_001 Barmer Bhagyam 02", "WCR", date(2024, 3, 12)),
+            ("DDR_DEMO_002.txt", "WL-IN-001", "DDR_DEMO_002 Barmer Mangala 01", "DDR", date(2024, 2, 10)),
+            ("WCR_DEMO_003.txt", "WL-IN-009", "WCR_DEMO_003 Cambay Gandhar 08", "WCR", date(2024, 3, 2)),
+            ("DDR_DEMO_004.txt", "WL-IN-020", "DDR_DEMO_004 KG Razole Deep 03", "DDR", date(2024, 1, 8)),
+        ]
 
-        report = HistoricalReport(
-            well_id=wells["WL-IN-002"].id,
-            title="WCR_DEMO_001 Barmer Bhagyam 02",
-            report_type="WCR",
-            original_filename="WCR_DEMO_001.txt",
-            storage_path=str(target),
-            status="UPLOADED",
-            file_size=target.stat().st_size,
-            uploaded_by=users["engineer"].id,
-            report_date=date(2024, 3, 12),
-            source_type="DEMO",
-        )
-        db.add(report)
-        db.commit()
-        process_report(db, report.id)
+        print("Processing historical reports through OCR & NLP pipeline...")
+        for fname, well_code, title, rtype, rdate in report_files:
+            source = Path(__file__).with_name(fname)
+            if source.exists():
+                target = upload_root / fname
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+                target_well = wells.get(well_code)
+                report = HistoricalReport(
+                    well_id=target_well.id if target_well else None,
+                    title=title,
+                    report_type=rtype,
+                    original_filename=fname,
+                    storage_path=str(target),
+                    status="UPLOADED",
+                    file_size=target.stat().st_size,
+                    uploaded_by=users["engineer"].id,
+                    report_date=rdate,
+                    source_type="DEMO",
+                )
+                db.add(report)
+                db.commit()
+                process_report(db, report.id)
 
         # 8. Seed Historical Events and Evidence for Indian Wells
         print("Inserting historical drilling events and evidence records...")
@@ -442,26 +456,29 @@ def seed(clean: bool = True) -> None:
         db.commit()
 
         # 9. Update Full-Text Search Vectors
-        db.execute(
-            text(
-                """
-                UPDATE drilling_events
-                SET search_vector = to_tsvector('english',
-                    coalesce(description,'') || ' ' || coalesce(event_type,'') || ' ' ||
-                    coalesce(risk_category,'') || ' ' || coalesce(formation_name,'') || ' ' ||
-                    coalesce(action_taken,'') || ' ' || coalesce(outcome,''))
-                """
+        try:
+            db.execute(
+                text(
+                    """
+                    UPDATE drilling_events
+                    SET search_vector = to_tsvector('english',
+                        coalesce(description,'') || ' ' || coalesce(event_type,'') || ' ' ||
+                        coalesce(risk_category,'') || ' ' || coalesce(formation_name,'') || ' ' ||
+                        coalesce(action_taken,'') || ' ' || coalesce(outcome,''))
+                    """
+                )
             )
-        )
-        db.execute(
-            text(
-                """
-                UPDATE evidence
-                SET search_vector = to_tsvector('english', coalesce(text_excerpt,'') || ' ' || coalesce(formation,'') || ' ' || coalesce(source_location,''))
-                """
+            db.execute(
+                text(
+                    """
+                    UPDATE evidence
+                    SET search_vector = to_tsvector('english', coalesce(text_excerpt,'') || ' ' || coalesce(formation,'') || ' ' || coalesce(source_location,''))
+                    """
+                )
             )
-        )
-        db.commit()
+            db.commit()
+        except Exception:
+            db.rollback()
 
         # 10. Recalculate Pairwise Similarity for all 30 Wells
         print("Recalculating similarity across all 30 Indian wells...")
@@ -473,25 +490,59 @@ def seed(clean: bool = True) -> None:
             similar_wells(db, well, limit=10, persist=True)
         print("Similarity calculations completed.")
 
-        # 11. Ensure Thresholds and Run Risk Analysis on Active Wells
+        # 11. Ensure Thresholds and Run Risk Analysis across wells
         ensure_thresholds(db)
         print("Running risk analysis on active drilling wells...")
-        for code in ["WL-IN-001", "WL-IN-009", "WL-IN-015", "WL-IN-020", "WL-IN-024"]:
-            active_well = wells.get(code)
-            if active_well:
-                analyze_well(db, active_well, create_alerts=True)
+        for code, well in wells.items():
+            analyze_well(db, well, create_alerts=(well.status == "DRILLING"))
 
-        # 12. Engineering Review
-        db.add(
-            EngineeringReview(
-                well_id=primary.id,
-                engineer_id=users["engineer"].id,
-                decision="MONITOR",
-                comment="DEMO review: Barmer Mangala 01 active drilling scan reviewed. Offset Barmer Bhagyam 02 kick history noted in Barmer Hill formation. Controlled penetration rate recommended.",
-                risk_category="STUCK_PIPE",
-                snapshot={"source": "DEMO_BARMER", "well_id": primary.well_code},
-            )
-        )
+        # 12. Engineering Reviews across regions
+        reviews_to_seed = [
+            (
+                "WL-IN-001",
+                "MONITOR",
+                "Barmer Mangala 01 active drilling scan reviewed. Offset Barmer Bhagyam 02 kick history noted in Barmer Hill formation. Controlled penetration rate recommended.",
+                "STUCK_PIPE",
+            ),
+            (
+                "WL-IN-009",
+                "APPROVE",
+                "Cambay Gandhar 08 logging at TD approved. Hazad overpressured sands isolated behind 7 in casing. Verified barrier integrity.",
+                "KICK",
+            ),
+            (
+                "WL-IN-015",
+                "REMEDIATE",
+                "Assam Naharkatiya 31 running 7 in casing. Recommended circulating 2 bottoms up before cementing to prevent differential sticking in Barail coals.",
+                "LOST_CIRCULATION",
+            ),
+            (
+                "WL-IN-020",
+                "MONITOR",
+                "KG Razole Deep 03 deep HPHT section in Gollapalli formation. Continuous mud logging and kick detection sensors calibrated and verified.",
+                "KICK",
+            ),
+            (
+                "WL-IN-024",
+                "APPROVE",
+                "Mumbai High North 05 sidetrack in Bombay High Limestone. Controlled torque limits and acid wash pill prepared for horizontal drain.",
+                "TORQUE",
+            ),
+        ]
+
+        for w_code, dec, comm, rcat in reviews_to_seed:
+            w_obj = wells.get(w_code)
+            if w_obj:
+                db.add(
+                    EngineeringReview(
+                        well_id=w_obj.id,
+                        engineer_id=users["engineer"].id,
+                        decision=dec,
+                        comment=comm,
+                        risk_category=rcat,
+                        snapshot={"source": "DEMO_REVIEW", "well_id": w_obj.well_code},
+                    )
+                )
         db.commit()
 
         total_wells = db.query(Well).count()
@@ -499,6 +550,7 @@ def seed(clean: bool = True) -> None:
         print(f"Total Wells in Database: {total_wells} (Target: 30)")
         print(f"Events: {db.query(DrillingEvent).count()}, Evidence: {db.query(Evidence).count()}")
         print(f"Similarities: {db.query(WellSimilarity).count()}, Reports: {db.query(HistoricalReport).count()}")
+        print(f"Alerts: {db.query(Alert).count()}, Reviews: {db.query(EngineeringReview).count()}")
     finally:
         db.close()
 
